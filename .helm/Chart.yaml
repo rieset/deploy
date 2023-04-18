@@ -1,4 +1,4 @@
 apiVersion: v2
-description: Helm Chart deployment of the Waves Production project
+description: Helm Chart deployment
 name: wp
 version: 1.0.0

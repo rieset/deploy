@@ -1,11 +1,12 @@
 {{- if .Values.backend.enabled }}
 {{- $mode := .Values.mode }}
-{{- $commit := include "wvproduction.commit" . }}
+{{- $namespace := .Values.namespace }}
+{{- $commit := include "chart.commit" . }}
 {{- $commonEnvs := .Values.common.envs }}
 {{- $commonSecrets := .Values.common.secrets }}
 {{- $chartName := .Chart.Name }}
 {{- $chartVersion := $.Chart.Version | replace "+" "_" }}
-{{- $fullName := include "wvproduction.fullname" . -}}
+{{- $fullName := include "chart.fullname" . -}}
 
 {{- with .Values.backend }}
 
@@ -20,6 +21,12 @@ metadata:
     chart: "{{ $fullName }}-{{ $chartVersion }}"
     commit: {{ $commit | quote }}
 data:
+  {{- if .connections }}
+  {{- range $key,$val := .connections }}
+  URL_TO_{{ $key | upper }}_SERVICE: http://{{ $fullName }}-{{ $key }}-service.{{ $namespace }}:{{ $val.port }}
+  {{- end }}
+  {{- end }}
+
   {{- if $.Values.common.envs.all }}
   # Common environments with tag all
   {{- range $key,$val := $.Values.common.envs.all }}
@@ -139,7 +146,7 @@ spec:
 {{ toYaml .resources | indent 12 }}
       restartPolicy: Always
       imagePullSecrets:
-        - name: regcredwp
+        - name: regcredghcr
 
 ---
 # Service

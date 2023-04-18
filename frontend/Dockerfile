@@ -3,12 +3,14 @@ FROM node:18-alpine as build
 ENV NODE_ENV="production" \
     USER="source" \
     BUILD_DEPS="" \
-    NODE_OPTIONS="--max_old_space_size=2048"
+    NODE_OPTIONS="--max_old_space_size=2048" \
+    HOST="0.0.0.0" \
+    PORT="1338"
 
 RUN set -x && \
     apk add --no-cache --virtual build_deps $BUILD_DEPS && \
-    addgroup -g 2000 app && \
-    adduser -u 2000 -G app -s /bin/sh -D app
+    addgroup -g 2000 source && \
+    adduser -u 2000 -G source -s /bin/sh -D source
 
 WORKDIR /home/$USER
 
@@ -24,7 +26,7 @@ RUN yarn install --production=false && \
 # Serve image
 FROM node:18-alpine as serve
 
-LABEL authors="Untld Tech" \
+LABEL authors="Rie" \
       org.label-schema.vendor="Frontend" \
       org.label-schema.name="Frontend Docker Image" \
       org.label-schema.description="Frontend" \
@@ -33,7 +35,9 @@ LABEL authors="Untld Tech" \
 ENV NODE_ENV="production" \
     USER="app" \
     BUILD_DEPS="bash curl" \
-    NODE_OPTIONS="--max_old_space_size=2048"
+    NODE_OPTIONS="--max_old_space_size=2048" \
+    HOST="0.0.0.0" \
+    PORT="1338"
 
 RUN set -x && \
     apk add --no-cache --virtual build_deps $BUILD_DEPS && \
@@ -45,7 +49,7 @@ WORKDIR /home/$USER
 USER $USER
 
 COPY --chown=$USER:$USER . .
-COPY --chown=$USER:$USER --from=build ["/home/source/server.sj", "/home/$USER/"]
+COPY --chown=$USER:$USER --from=build ["/home/source/server.js", "/home/$USER/"]
 
 RUN yarn install --production=true
 

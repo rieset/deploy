@@ -39,6 +39,12 @@ server.get('/ping', opts, async () => {
   return { pong: 'it worked!' }
 })
 
+server.register(require('@fastify/http-proxy'), {
+  upstream: process.env.URL_TO_BACKEND_SERVICE || 'http://localhost:1337/api',
+  prefix: '/api', // optional
+  http2: false // optional
+})
+
 const start = async () => {
   try {
     await server.listen({ port, host }, (err, address) => {
@@ -50,9 +56,8 @@ const start = async () => {
       }
     )
 
-    const address = server.server.address()
-    console.log(address);
-
+    const app = server.server.address()
+    console.log('Address', app);
   } catch (err) {
     server.log.error(err)
     process.exit(1)

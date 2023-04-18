@@ -8,7 +8,7 @@
     "build": "run-s build:*",
     "build:server": "tsc -p tsconfig.json"
   },
-  "author": "Untld Tech",
+  "author": "Rie",
   "license": "MIT",
   "dependencies": {
     "@fastify/static": "^6.10.1",

@@ -5,7 +5,7 @@ import Fastify, {
 } from 'fastify'
 import { join } from 'path';
 
-const port: number = parseInt(process?.env?.PORT || "1338", 10)
+const port: number = parseInt(process?.env?.PORT || "1337", 10)
 const host: string = process?.env?.HOST || "localhost"
 
 const server: FastifyInstance = Fastify({})
@@ -31,11 +31,7 @@ const opts: RouteShorthandOptions = {
   }
 }
 
-server.get('/', opts, async (request: FastifyRequest, reply: FastifyReply) => {
-  return reply.sendFile('index.html')
-})
-
-server.get('/ping', opts, async () => {
+server.get('/api', opts, async () => {
   return { pong: 'it worked!' }
 })
 
@@ -50,8 +46,8 @@ const start = async () => {
       }
     )
 
-    const address = server.server.address()
-    console.log(address);
+    const app = server.server.address()
+    console.log('Address',  app);
 
   } catch (err) {
     server.log.error(err)

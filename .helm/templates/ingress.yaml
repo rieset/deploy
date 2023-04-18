@@ -1,7 +1,7 @@
 {{- if .Values.ingress.enabled -}}
 {{- $mode := .Values.mode }}
-{{- $commit := include "wvproduction.commit" . }}
-{{- $fullName := include "wvproduction.fullname" . -}}
+{{- $commit := include "chart.commit" . }}
+{{- $fullName := include "chart.fullname" . -}}
 {{- $chartVersion := $.Chart.Version | replace "+" "_" }}
 {{- $ := . -}}
 
@@ -30,7 +30,7 @@ spec:
   {{- if eq .mode $mode }}
     - hosts:
       {{- range $key,$val := .hosts }}
-        - {{ template "wvproduction.hostname" $val }}
+        - {{ template "chart.hostname" $val }}
       {{- end }}
       secretName: {{ $fullName }}-tls-secret-{{ $key }}
   {{- end }}
@@ -43,7 +43,7 @@ spec:
     {{- $port := .port }}
     {{- range $key,$val := .hosts }}
     {{- if lt $key 1 }}
-    - host: {{ template "wvproduction.hostname" $val }}
+    - host: {{ template "chart.hostname" $val }}
       http: &host-config-{{ $domainKey }}
         paths:
           - path: /
@@ -54,7 +54,7 @@ spec:
                 port:
                   number: {{ $port }}
     {{- else }}
-    - host: {{ template "wvproduction.hostname" $val }}
+    - host: {{ template "chart.hostname" $val }}
       http: *host-config-{{ $domainKey }}
     {{- end }}
     {{- end }}

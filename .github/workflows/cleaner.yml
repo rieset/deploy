@@ -1,0 +1,45 @@
+name: Delete old packages
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # расписание для запуска каждый день в полночь
+
+env:
+  GHCR_REGISTRY_USERNAME: ${{ secrets.PACKAGES_USER }}
+  GHCR_REGISTRY_PASSWORD: ${{ secrets.PACKAGES_TOKEN }}
+
+jobs:
+  delete-old-packages:
+    name: Deleting old versions of packages
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Create tag image
+        run: |
+          RELEASE_NAME=$(echo "${{github.repository}}" | cut -d'/' -f2)
+          SHORT_SHA=$(echo "g${GITHUB_SHA}" | cut -c1-6)
+
+          echo "RELEASE_NAME=$RELEASE_NAME" >> ${GITHUB_ENV}
+          echo "SHORT_SHA=$SHORT_SHA" >> ${GITHUB_ENV}
+
+      -
+        name: Claen frontend packages
+        uses: actions/delete-package-versions@v4.1.1
+        with:
+          package-name: ${{ env.RELEASE_NAME }}-frontend
+          package-type: 'container'
+          min-versions-to-keep: 3
+          ignore-versions: '^release'
+          owner: ${{ env.GHCR_REGISTRY_USERNAME }}
+          token: ${{ env.GHCR_REGISTRY_PASSWORD }}
+
+      -
+        name: Claen frontend packages
+        uses: actions/delete-package-versions@v4.1.1
+        with:
+          package-name: ${{ env.RELEASE_NAME }}-backend
+          package-type: 'container'
+          min-versions-to-keep: 3
+          ignore-versions: '^release'
+          owner: ${{ env.GHCR_REGISTRY_USERNAME }}
+          token: ${{ env.GHCR_REGISTRY_PASSWORD }}
