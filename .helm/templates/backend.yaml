@@ -1,0 +1,164 @@
+{{- if .Values.backend.enabled }}
+{{- $mode := .Values.mode }}
+{{- $commit := include "wvproduction.commit" . }}
+{{- $commonEnvs := .Values.common.envs }}
+{{- $commonSecrets := .Values.common.secrets }}
+{{- $chartName := .Chart.Name }}
+{{- $chartVersion := $.Chart.Version | replace "+" "_" }}
+{{- $fullName := include "wvproduction.fullname" . -}}
+
+{{- with .Values.backend }}
+
+
+# Config
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $fullName }}-{{ .alias }}
+  labels:
+    app: {{ $fullName }}-{{ .alias }}-config
+    chart: "{{ $fullName }}-{{ $chartVersion }}"
+    commit: {{ $commit | quote }}
+data:
+  {{- if $.Values.common.envs.all }}
+  # Common environments with tag all
+  {{- range $key,$val := $.Values.common.envs.all }}
+  {{ $key }}: {{ $val | quote }}
+  {{- end }}
+  {{- end }}
+
+  {{- range $scopeName,$scope := $.Values.common.envs }}
+  {{- if eq $scopeName $mode }}
+  # Common environments for {{ $mode }}
+  {{- range $prop,$value := $scope }}
+  {{ $prop }}: {{ $value | quote }}
+  {{- end }}
+  {{- end }}
+  {{- end }}
+
+  {{- if .envs.all }}
+  # Specific to deployment for all
+  {{- range $key,$val := .envs.all }}
+  {{ $key }}: {{ $val | quote }}
+  {{- end }}
+  {{- end }}
+
+  {{- range $scopeName,$scope := .envs }}
+  {{- if eq $scopeName $mode }}
+  # Specific to deployment for {{ $mode }}
+  {{- range $prop,$value := $scope }}
+  {{ $prop }}: {{ $value | quote }}
+  {{- end }}
+  {{- end }}
+  {{- end }}
+
+
+---
+# Secrets
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ $fullName }}-{{ .alias }}
+  labels:
+    app: {{ $fullName }}-{{ .alias }}-secrets
+    chart: "{{ $fullName }}-{{ $chartVersion }}"
+    commit: {{ $commit | quote }}
+type: Opaque
+data:
+  {{- if $.Values.common.secrets.all }}
+  # Common secrets with tag all
+  {{- range $key,$val := $.Values.common.secrets.all }}
+  {{ $key }}: {{ $val | b64enc | quote }}
+  {{- end }}
+  {{- end }}
+
+  {{- range $scopeName,$scope := $.Values.common.secrets }}
+  {{- if eq $scopeName $mode }}
+  # Common secrets for {{ $mode }}
+  {{- range $prop,$value := $scope }}
+  {{ $prop }}: {{ $value | b64enc | quote }}
+  {{- end }}
+  {{- end }}
+  {{- end }}
+
+  {{- if .secrets.all }}
+  # Specific secrets to deployment for all
+  {{- range $key,$val := .secrets.all }}
+  {{ $key }}: {{ $val | b64enc | quote }}
+  {{- end }}
+  {{- end }}
+
+  {{- range $scopeName,$scope := .secrets }}
+  {{- if eq $scopeName $mode }}
+  # Specific secrets to deployment for {{ $mode }}
+  {{- range $prop,$value := $scope }}
+  {{ $prop }}: {{ $value | b64enc | quote }}
+  {{- end }}
+  {{- end }}
+  {{- end }}
+
+
+---
+# Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $fullName }}-{{ .alias }}-deployment
+  labels:
+    app: {{ $fullName }}-{{ .alias }}
+    chart: "{{ $fullName }}-{{ $chartVersion }}"
+    commit: {{ $commit | quote }}
+spec:
+  replicas: {{ .replicaCount }}
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: {{ $fullName }}-{{ .alias }}
+  template:
+    metadata:
+      labels:
+        app: {{ $fullName }}-{{ .alias }}
+        chart: "{{ $chartName }}-{{ $chartVersion }}"
+        commit: {{ $commit | quote }}
+    spec:
+      containers:
+      - name: {{ $fullName }}-{{ .alias }}-container
+        envFrom:
+        - secretRef:
+            name: {{ $fullName }}-{{ .alias }}
+        - configMapRef:
+            name: {{ $fullName }}-{{ .alias }}
+        image: "{{ .image.repository }}"
+        imagePullPolicy: {{ $.Values.registry.pullPolicy }}
+        ports:
+        - name: "{{ .service.name }}"
+          containerPort: {{ .service.internalPort }}
+        resources:
+{{ toYaml .resources | indent 12 }}
+      restartPolicy: Always
+      imagePullSecrets:
+        - name: regcredwp
+
+---
+# Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullName }}-{{ .alias }}-service
+  labels:
+    app: {{ $fullName }}-{{ .alias }}
+    chart: "{{ $fullName }}-{{ $chartVersion }}"
+    commit: {{ $commit | quote }}
+spec:
+  type: {{ .service.type }}
+  ports:
+    - port: {{ .service.externalPort }}
+      targetPort: {{ .service.internalPort }}
+      protocol: TCP
+      name: {{ .service.name }}
+  selector:
+    app: {{ $fullName }}-{{ .alias }}
+{{- end }}
+{{- end }}

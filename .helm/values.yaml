@@ -1,0 +1,102 @@
+# Commit hash
+mode: stage
+commit: ${GITHUB_REPOSITORY}-${GITHUB_SHA}
+
+ingress:
+  email: ${SUPPORT_EMAIL}
+  https: true
+  enabled: true
+  clusterIssuer: letsencrypt-prod
+  eksEnabled: false
+  domains:
+    -
+      mode: stage
+      alias: frontend
+      port: ${FRONTEND_PORT}
+      hosts:
+        - ${STAGE_DOMAIN}
+    -
+      mode: release
+      alias: frontend
+      port: ${FRONTEND_PORT}
+      hosts:
+        - ${RELEASE_DOMAIN}
+        - www.${RELEASE_DOMAIN}
+
+# Connect to docker registry
+registry:
+  pullPolicy: Always # IfNotPresent from local version
+
+# Common environments
+common:
+  envs:
+    all:
+      NODE_ENV: "production"
+      COMMIT: ${GITHUB_REPOSITORY}-${GITHUB_SHA}
+      API_SERVICE_URL: ${API_SERVICE_URL}
+
+  secrets:
+    all:
+      SOME_SECRET: ""
+
+frontend:
+  enabled: true
+  alias: frontend
+  replicaCount: 1
+  image:
+    repository: ${GHCR_IMAGE_FRONTEND}
+  service:
+    name: http
+    type: NodePort
+    externalPort: ${FRONTEND_PORT}
+    internalPort: ${FRONTEND_PORT}
+  resources:
+    requests:
+      memory: 128Mi
+      cpu: 200m
+    limits:
+      memory: 512Mi
+      cpu: 300m
+  debug: false
+  envs:
+    all:
+      PUBLIC_URL: ${PUBLIC_URL}
+      PORT: 1338
+
+  secrets:
+    all:
+      SOME_SECRET: ""
+
+backend:
+  enabled: true
+  alias: backend
+  replicaCount: 1
+  image:
+    repository: ${GHCR_IMAGE_BACKEND}
+  service:
+    name: http
+    type: NodePort
+    externalPort: ${BACKEND_PORT}
+    internalPort: ${BACKEND_PORT}
+  resources:
+    requests:
+      memory: 128Mi
+      cpu: 200m
+    limits:
+      memory: 256Mi
+      cpu: 200m
+  debug: false
+  envs:
+    all:
+      PORT: 1337
+
+    stage:
+      CRON: false
+      CACHE: false
+
+    release:
+      CRON: true
+      CACHE: true
+  secrets:
+    all:
+      SOME_SECRET: ""
